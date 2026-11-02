@@ -82,6 +82,28 @@
   .formula{font-size:14px;padding:10px 12px;background:#0b0f19;border-radius:10px;border:1px solid var(--line);line-height:1.7}
   .formula .g{color:var(--green)} .formula .v{color:var(--violet)} .formula .y{color:var(--gold)}
   footer{margin-top:28px;color:var(--muted);font-size:12px;text-align:center;line-height:1.7}
+
+  /* header + tutorial popup */
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+  .tut-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(169,139,255,.18),rgba(79,216,255,.14));
+           border:1px solid var(--violet);color:var(--text);border-radius:999px;padding:9px 16px;font:inherit;font-size:13px;cursor:pointer}
+  .tut-btn:hover{box-shadow:0 0 0 3px rgba(169,139,255,.18)}
+  .tut-btn svg{width:14px;height:14px;fill:var(--violet)}
+  .modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;
+         background:rgba(5,7,12,.78);backdrop-filter:blur(6px)}
+  .modal.open{display:flex;animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-box{width:min(960px,100%);background:var(--panel);border:1px solid rgba(169,139,255,.5);border-radius:var(--radius);overflow:hidden;
+             box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .modal-head span{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .modal-x{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer}
+  .modal-x:hover{color:var(--text);border-color:var(--violet)}
+  .modal video{display:block;width:100%;aspect-ratio:16/9;background:#000}
+  .modal-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;font-size:12px;color:var(--muted)}
+  .modal-foot label{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .modal-foot input{accent-color:var(--violet)}
+  .vid-missing{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;display:none}
 </style>
 </head>
 <body>
@@ -100,8 +122,11 @@
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Star Wars: Droid Tycoon · Rebirth cycles</div>
-    <h1>Nova Crystals Guide</h1>
+    <div>
+      <div class="eyebrow">Star Wars: Droid Tycoon · Rebirth cycles</div>
+      <h1>Nova Crystals Guide</h1>
+    </div>
+    <button class="tut-btn" id="tutOpen"><svg viewBox="0 0 10 12"><path d="M0 0 L10 6 L0 12 Z"/></svg>How to use</button>
   </header>
 
   <!-- Per-cycle breakdown -->
@@ -193,8 +218,59 @@
   </footer>
 </div>
 
+<div class="modal" id="tutModal" role="dialog" aria-modal="true" aria-label="How to use this guide">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>How to use the guide</span>
+      <button class="modal-x" id="tutClose" aria-label="Close">×</button>
+    </div>
+    <video id="tutVideo" src="swdt-nova-tutorial.mp4" controls playsinline muted preload="metadata"></video>
+    <div class="vid-missing" id="vidMissing">Tutorial video not found. Upload <b>swdt-nova-tutorial.mp4</b> next to this page.</div>
+    <div class="modal-foot">
+      <label><input type="checkbox" id="tutHide"> Don't show this automatically again</label>
+      <span>Reopen anytime with “How to use”</span>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
+  const SEEN = "swdt-nova-tutorial-seen";
+  const modal = document.getElementById("tutModal");
+  const vid = document.getElementById("tutVideo");
+  const hide = document.getElementById("tutHide");
+  let seen = false;
+  try { seen = localStorage.getItem(SEEN) === "1"; } catch (e) {}
+  hide.checked = seen;
+
+  function open() {
+    modal.classList.add("open");
+    try { vid.currentTime = 0; const p = vid.play(); if (p) p.catch(() => {}); } catch (e) {}
+  }
+  function close() {
+    modal.classList.remove("open");
+    vid.pause();
+  }
+  hide.addEventListener("change", () => { try { hide.checked ? localStorage.setItem(SEEN, "1") : localStorage.removeItem(SEEN); } catch (e) {} });
+  vid.addEventListener("error", () => { vid.style.display = "none"; document.getElementById("vidMissing").style.display = "block"; });
+  document.getElementById("tutOpen").onclick = open;
+  document.getElementById("tutClose").onclick = close;
+  modal.addEventListener("click", e => { if (e.target === modal) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && modal.classList.contains("open")) close(); });
+
+  // auto-open on first visit (once per browser session unless "don't show again" is ticked)
+  let shownThisSession = false;
+  try { shownThisSession = sessionStorage.getItem(SEEN) === "1"; } catch (e) {}
+  if (!seen && !shownThisSession) {
+    try { sessionStorage.setItem(SEEN, "1"); } catch (e) {}
+    setTimeout(open, 600);
+  }
+})();
+</script>
+
+<script>
+(() => {
+  if (window.Chart) Chart.defaults.font.family = "'JetBrains Mono', ui-monospace, monospace";
   const DEFAULT = { reg: 2975, sup: 529, max: 40 };
   const KEY = "swdt-nova-cycle";
   const fmt = n => Math.round(n).toLocaleString("en-US");
